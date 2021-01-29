@@ -27,12 +27,13 @@
 {
     UIView *lineBottom;
     UIView *topTabBottomLine;
-    NSMutableArray *btnArray;
+    
     NSMutableArray *topTabArray;
     NSMutableArray *bottomLineWidthArray;
     NSInteger topTabType;
     UIView *ninaMaskView;
 }
+@synthesize btnArray;
 
 - (instancetype)initWithFrame:(CGRect)frame WithTopTabType:(NSInteger)topTabNum
 {
@@ -51,8 +52,8 @@
     _topTabHiddenEnable = topTabHiddenEnable;
     CGFloat minusDistance = _topTabHiddenEnable?_topHeight:0;
     [UIView animateWithDuration:0.3 animations:^{
-        self.topTab.frame = CGRectMake(0, 0 - minusDistance, FUll_VIEW_WIDTH, _topHeight);
-        self.scrollView.frame = CGRectMake(0, _topHeight - minusDistance, FUll_VIEW_WIDTH, self.frame.size.height - (_topHeight - minusDistance));
+        self.topTab.frame = CGRectMake(0, 0 - minusDistance, FUll_VIEW_WIDTH, self.topHeight);
+        self.scrollView.frame = CGRectMake(0, self.topHeight - minusDistance, FUll_VIEW_WIDTH, self.frame.size.height - (self.topHeight - minusDistance));
     }];
 }
 
@@ -68,13 +69,18 @@
     [self initUI];
 }
 
+- (void)reloadTabTItles:(NSArray *)items
+{
+    
+}
+
 #pragma mark - LazyLoad
 - (UIScrollView *)scrollView {
     if (!_scrollView) {
         _scrollView = [[UIScrollView alloc] init];
         _scrollView.delegate = self;
         _scrollView.tag = 318;
-        _scrollView.backgroundColor = UIColorFromRGB(0xfafafa);
+//        _scrollView.backgroundColor = UIColorFromRGB(0xfafafa);
         [self updateScrollViewUI];
         _scrollView.pagingEnabled = YES;
         _scrollView.showsHorizontalScrollIndicator = NO;
@@ -104,6 +110,7 @@
         _topTab.showsVerticalScrollIndicator = NO;
         _topTab.bounces = NO;
         _topTab.scrollsToTop = NO;
+        _topTab.layer.masksToBounds = NO;
         [self updateTopTabUI];
         if (@available(iOS 11.0, *)) {
             _topTab.contentInsetAdjustmentBehavior = UIScrollViewContentInsetAdjustmentNever;
@@ -128,54 +135,86 @@
 - (void)scrollViewDidScroll:(UIScrollView *)scrollView {
     if (scrollView.tag == 318) {
         NSInteger yourPage = (NSInteger)((scrollView.contentOffset.x + FUll_VIEW_WIDTH / 2) / FUll_VIEW_WIDTH);
-        CGFloat yourCount = 1.0 / _titleArray.count;
-        if (_titleArray.count > 5) {
-            yourCount = 1.0 / 5.0;
-        }
-        if (_autoFitTitleLine) {
-            _bottomLinePer = [bottomLineWidthArray[yourPage] floatValue] / (FUll_VIEW_WIDTH * yourCount);
-        }
-        CGFloat lineBottomDis = yourCount * FUll_VIEW_WIDTH * (1 -_bottomLinePer) / 2;
-        if (topTabType == 1) {
-            CGPoint maskCenter = ninaMaskView.center;
-            if (_titleArray.count >= 5) {
-                maskCenter.x = ninaMaskView.frame.size.width / 2.0 - (scrollView.contentOffset.x * 0.2);
-            }else {
-                maskCenter.x = ninaMaskView.frame.size.width / 2.0 - (scrollView.contentOffset.x * yourCount);
-            }
-            ninaMaskView.center = maskCenter;
-        }
-        if (_titleArray.count > 5) {
-            switch (topTabType) {
-                case 0:
-                    if (_bottomLineHeight >= 3) {
-                        lineBottom.frame = CGRectMake(scrollView.contentOffset.x / 5 + lineBottomDis, _topHeight - 3, yourCount * FUll_VIEW_WIDTH * _bottomLinePer, 3);
-                        break;
-                    }
-                    lineBottom.frame = CGRectMake(scrollView.contentOffset.x / 5 + lineBottomDis, _topHeight - _bottomLineHeight, yourCount * FUll_VIEW_WIDTH * _bottomLinePer, _bottomLineHeight);
-                    break;
-                case 1:
-                    lineBottom.frame = CGRectMake(scrollView.contentOffset.x / 5 + lineBottomDis, (_topHeight - _blockHeight) / 2.0, yourCount * FUll_VIEW_WIDTH * _bottomLinePer, _blockHeight);
-                    break;
-                default:
-                    break;
-            }
+//        CGFloat yourCount = 1.0 / _titleArray.count;
+//        if (_titleArray.count > 5) {
+//            yourCount = 1.0 / 5.0;
+//        }
+//        if (yourPage > 0) {
+//               lineBottom.frame = CGRectMake(<#CGFloat x#>, lineBottom.frame.origin.y, lineBottom.frame.size.width, lineBottom.frame.size.height);
+//        }
+        float progress =  (scrollView.contentOffset.x - yourPage  * FUll_VIEW_WIDTH)/FUll_VIEW_WIDTH;
+        if (progress <= 0 && yourPage == 0) {
+          
         }else {
-            switch (topTabType) {
-                case 0:
-                    if (_bottomLineHeight >= 3) {
-                        lineBottom.frame = CGRectMake(scrollView.contentOffset.x / _titleArray.count + lineBottomDis, _topHeight - 3, yourCount * FUll_VIEW_WIDTH * _bottomLinePer, 3);
-                    }else {
-                        lineBottom.frame = CGRectMake(scrollView.contentOffset.x / _titleArray.count + lineBottomDis, _topHeight - _bottomLineHeight, yourCount * FUll_VIEW_WIDTH * _bottomLinePer, _bottomLineHeight);
-                    }
-                    break;
-                case 1:
-                    lineBottom.frame = CGRectMake(scrollView.contentOffset.x / _titleArray.count + lineBottomDis, (_topHeight - _blockHeight) / 2.0, yourCount * FUll_VIEW_WIDTH * _bottomLinePer, _blockHeight);
-                    break;
-                default:
-                    break;
+//            NSLog(@"%f",progress);
+            if (progress >= 0) {
+                if (yourPage + 1 < btnArray.count ) {
+                    UIButton * first = btnArray[yourPage];
+                    UIButton * second = btnArray[yourPage + 1];
+                    lineBottom.center = CGPointMake(first.center.x  + (second.center.x - first.center.x) * progress, lineBottom.center.y)  ;
+                }
+               
+                
+            }else {
+                UIButton * first = btnArray[yourPage - 1];
+                UIButton * second = btnArray[yourPage];
+                lineBottom.center = CGPointMake(second.center.x  + (second.center.x - first.center.x) * progress , lineBottom.center.y)  ;
             }
         }
+        
+        
+//        UIButton * lastButton =  btnArray[yourPage];
+//
+//        yourPage
+//
+//
+        
+//        NSLog(@"yourPage %d",yourPage);
+        
+//        if (_autoFitTitleLine) {
+//            _bottomLinePer = [bottomLineWidthArray[yourPage] floatValue] / (FUll_VIEW_WIDTH * yourCount);
+//        }
+//        CGFloat lineBottomDis = yourCount * FUll_VIEW_WIDTH * (1 -_bottomLinePer) / 2;
+//        if (topTabType == 1) {
+//            CGPoint maskCenter = ninaMaskView.center;
+//            if (_titleArray.count >= 5) {
+//                maskCenter.x = ninaMaskView.frame.size.width / 2.0 - (scrollView.contentOffset.x * 0.2);
+//            }else {
+//                maskCenter.x = ninaMaskView.frame.size.width / 2.0 - (scrollView.contentOffset.x * yourCount);
+//            }
+//            ninaMaskView.center = maskCenter;
+//        }
+//        if (_titleArray.count > 5) {
+//            switch (topTabType) {
+//                case 0:
+//                    if (_bottomLineHeight >= 3) {
+//                        lineBottom.frame = CGRectMake(scrollView.contentOffset.x / 5 + lineBottomDis, _topHeight - 3, yourCount * FUll_VIEW_WIDTH * _bottomLinePer, 3);
+//                        break;
+//                    }
+//                    lineBottom.frame = CGRectMake(scrollView.contentOffset.x / 5 + lineBottomDis, _topHeight - _bottomLineHeight, yourCount * FUll_VIEW_WIDTH * _bottomLinePer, _bottomLineHeight);
+//                    break;
+//                case 1:
+//                    lineBottom.frame = CGRectMake(scrollView.contentOffset.x / 5 + lineBottomDis, (_topHeight - _blockHeight) / 2.0, yourCount * FUll_VIEW_WIDTH * _bottomLinePer, _blockHeight);
+//                    break;
+//                default:
+//                    break;
+//            }
+//        }else {
+//            switch (topTabType) {
+//                case 0:
+//                    if (_bottomLineHeight >= 3) {
+//                        lineBottom.frame = CGRectMake(scrollView.contentOffset.x / _titleArray.count + lineBottomDis, _topHeight - 3, yourCount * FUll_VIEW_WIDTH * _bottomLinePer, 3);
+//                    }else {
+//                        lineBottom.frame = CGRectMake(scrollView.contentOffset.x / _titleArray.count + lineBottomDis, _topHeight - _bottomLineHeight, yourCount * FUll_VIEW_WIDTH * _bottomLinePer, _bottomLineHeight);
+//                    }
+//                    break;
+//                case 1:
+//                    lineBottom.frame = CGRectMake(scrollView.contentOffset.x / _titleArray.count + lineBottomDis, (_topHeight - _blockHeight) / 2.0, yourCount * FUll_VIEW_WIDTH * _bottomLinePer, _blockHeight);
+//                    break;
+//                default:
+//                    break;
+//            }
+//        }
         for (NSInteger i = 0;  i < btnArray.count; i++) {
             if (topTabType == 0 || topTabType == 2) {
                 if (_btnUnSelectColor) {
@@ -226,13 +265,14 @@
             UIButton *changeButton = btnArray[yourPage];
             if (_titleScale > 0) {
                 [UIView animateWithDuration:0.3 animations:^{
-                    changeButton.transform = CGAffineTransformMakeScale(_titleScale, _titleScale);
+                    changeButton.transform = CGAffineTransformMakeScale(self.titleScale, self.titleScale);
                 }];
             }else {
                 [UIView animateWithDuration:0.3 animations:^{
                     changeButton.transform = CGAffineTransformMakeScale(1.15, 1.15);
                 }];
             }
+            
         }
     }
 }
@@ -250,32 +290,30 @@
     if (_titleArray.count > 5) {
         additionCount = (_titleArray.count - 5.0) / 5.0;
     }
-    _topTab.contentSize = CGSizeMake((1 + additionCount) * FUll_VIEW_WIDTH, _topHeight - TabbarHeight);
-    if (_baseDefaultPage > 2 && _baseDefaultPage < _titleArray.count) {
-        if (_titleArray.count >= 5) {
-            _topTab.contentOffset = CGPointMake(1.0 / 5.0 * FUll_VIEW_WIDTH * (_baseDefaultPage - 2), 0);
-        }else {
-            _topTab.contentOffset = CGPointMake(1.0 / _titleArray.count * FUll_VIEW_WIDTH * (_baseDefaultPage - 2), 0);
-        }
-    }
+  
     btnArray = [NSMutableArray array];
     bottomLineWidthArray = [NSMutableArray array];
     topTabArray = [NSMutableArray array];
+    UIButton * lastButton = nil;
     for (NSInteger i = 0; i < _titleArray.count; i++) {
         UIButton *button = [UIButton buttonWithType:UIButtonTypeCustom];
         button.tag = i;
-        if (_titleArray.count > 5) {
-            button.frame = CGRectMake(More5LineWidth * i, 0, More5LineWidth, _topHeight);
-        }else {
-            button.frame = CGRectMake(FUll_VIEW_WIDTH / _titleArray.count * i, 0, FUll_VIEW_WIDTH / _titleArray.count, _topHeight);
-        }
+        button.layer.anchorPoint = CGPointMake(0.5, 0.8);
         if (_topArray.count == _titleArray.count && _changeTopArray.count == _titleArray.count && (topTabType == 0 || topTabType == 2)) {
             UIView *customTopView = _topArray[i];
+            if (i == 0) {
+                button.frame = CGRectMake(self.leftMargin, 0, customTopView.frame.size.width, _topHeight);
+            }else {
+                button.frame = CGRectMake(lastButton.frame.origin.x + lastButton.frame.size.width + self.itemInterval, 0, customTopView.frame.size.width, _topHeight);
+            }
+
+          
             customTopView.frame = button.bounds;
             customTopView.userInteractionEnabled = NO;
             customTopView.exclusiveTouch = NO;
             [topTabArray addObject:customTopView];
             [button addSubview:customTopView];
+            lastButton = button;
         }else {
             button.titleLabel.font = [UIFont systemFontOfSize:_titlesFont];
             if ([_titleArray[i] isKindOfClass:[NSString class]]) {
@@ -321,10 +359,17 @@
             }
         }
     }
+    if (btnArray.count > 0) {
+       UIButton * selectbutton =  [btnArray objectAtIndex:self.currentPage];
+        if (_titleScale > 0) {
+                selectbutton.transform = CGAffineTransformMakeScale(_titleScale, _titleScale);
+        }
+    }
+    
     //Create Toptab underline.
     if (!_topTabUnderLineHidden) {
         topTabBottomLine = [UIView new];
-        topTabBottomLine.backgroundColor = UIColorFromRGB(0xcecece);
+        topTabBottomLine.backgroundColor = UIColorFromRGB(0x5f6379);
         [_topTab addSubview:topTabBottomLine];
     }
     //Create Toptab bottomline.
@@ -336,27 +381,49 @@
     }
     lineBottom.clipsToBounds = YES;
     lineBottom.userInteractionEnabled = YES;
+    lineBottom.layer.cornerRadius = 2;
     [_topTab addSubview:lineBottom];
-    //Create ninaMaskView.
-    if (topTabType == 1) {
-        ninaMaskView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, (1 + additionCount) * FUll_VIEW_WIDTH, _blockHeight)];
-        ninaMaskView.backgroundColor = [UIColor clearColor];
-        for (NSInteger j = 0; j < _titleArray.count; j++) {
-            UILabel *maskLabel = [UILabel new];
-            if (_titleArray.count > 5) {
-                maskLabel.frame = CGRectMake(More5LineWidth * j - More5LineWidth * (1 - _bottomLinePer) / 2, 0, More5LineWidth, _blockHeight);
-            }else {
-                maskLabel.frame = CGRectMake(FUll_VIEW_WIDTH / _titleArray.count * j - FUll_VIEW_WIDTH / _titleArray.count * (1 - _bottomLinePer) / 2, 0, FUll_VIEW_WIDTH / _titleArray.count, _blockHeight);
-            }
-            maskLabel.text = _titleArray[j];
-            maskLabel.textColor = _btnSelectColor?_btnSelectColor:[UIColor whiteColor];
-            maskLabel.numberOfLines = 0;
-            maskLabel.textAlignment = NSTextAlignmentCenter;
-            maskLabel.font = [UIFont systemFontOfSize:_titlesFont];
-            [ninaMaskView addSubview:maskLabel];
-        }
-        [lineBottom addSubview:ninaMaskView];
+    
+    
+    if (btnArray.count > 0) {
+        UIButton * lastButton = btnArray.lastObject;
+        _topTab.contentSize = CGSizeMake(lastButton.frame.origin.x + lastButton.frame.size.width + self.leftMargin,0);
     }
+    if (btnArray.count > 0) {
+        UIButton * defaultButton = btnArray[_baseDefaultPage];
+        if (defaultButton.frame.origin.x > FUll_VIEW_WIDTH/2) {
+            _topTab.contentOffset = CGPointMake(defaultButton.center.x, 0);
+        }
+    }
+    
+    
+
+    
+//    //Create ninaMaskView.
+//    if (topTabType == 1) {
+//        ninaMaskView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, (1 + additionCount) * FUll_VIEW_WIDTH, _blockHeight)];
+//        UIView * topOneView = topTabArray[0];
+//        if (topOneView) {
+//            ninaMaskView.center = CGPointMake(topOneView.center.x, ninaMaskView.center.y);
+//        }
+//
+//        ninaMaskView.backgroundColor = [UIColor clearColor];
+//        for (NSInteger j = 0; j < _titleArray.count; j++) {
+//            UILabel *maskLabel = [UILabel new];
+//            if (_titleArray.count > 5) {
+//                maskLabel.frame = CGRectMake(More5LineWidth * j - More5LineWidth * (1 - _bottomLinePer) / 2, 0, More5LineWidth, _blockHeight);
+//            }else {
+//                maskLabel.frame = CGRectMake(FUll_VIEW_WIDTH / _titleArray.count * j - FUll_VIEW_WIDTH / _titleArray.count * (1 - _bottomLinePer) / 2, 0, FUll_VIEW_WIDTH / _titleArray.count, _blockHeight);
+//            }
+//            maskLabel.text = _titleArray[j];
+//            maskLabel.textColor = _btnSelectColor?_btnSelectColor:[UIColor whiteColor];
+//            maskLabel.numberOfLines = 0;
+//            maskLabel.textAlignment = NSTextAlignmentCenter;
+//            maskLabel.font = [UIFont systemFontOfSize:_titlesFont];
+//            [ninaMaskView addSubview:maskLabel];
+//        }
+//        [lineBottom addSubview:ninaMaskView];
+//    }
     if (topTabType == 2) {
         lineBottom.hidden = YES;
     }
@@ -366,8 +433,9 @@
 - (void)baseViewLoadData {
     self.topTab.frame = CGRectMake(0, 0, FUll_VIEW_WIDTH, _topHeight);
     self.scrollView.frame = CGRectMake(0, _topHeight, FUll_VIEW_WIDTH, self.frame.size.height - _topHeight);
+     [self addSubview:self.scrollView];
     [self addSubview:self.topTab];
-    [self addSubview:self.scrollView];
+   
     [self initUI];
 }
 
@@ -378,23 +446,45 @@
         additionCount = (_titleArray.count - 5.0) / 5.0;
         yourCount = 1.0 / 5.0;
     }
-    if (_autoFitTitleLine) {
-        _bottomLinePer = [bottomLineWidthArray[0] floatValue] / (FUll_VIEW_WIDTH * yourCount);
-    }
-    CGFloat lineBottomDis = yourCount * FUll_VIEW_WIDTH * (1 -_bottomLinePer) / 2;
+//    if (_autoFitTitleLine) {
+//        _bottomLinePer = [bottomLineWidthArray[0] floatValue] / (FUll_VIEW_WIDTH * yourCount);
+//    }
+
+   
+//    CGFloat lineBottomDis = yourCount * FUll_VIEW_WIDTH * (1 -_bottomLinePer) / 2;
     NSInteger defaultPage = (_baseDefaultPage > 0 && _baseDefaultPage < _titleArray.count)?_baseDefaultPage:0;
+    
+    // 设置滑块高度和宽度
+    CGFloat width = 30;
+    if (_lineBottomWidth > 0) {
+        width = _lineBottomWidth;
+    }
+    CGFloat height = 2;
+    if (_blockHeight > 0) {
+        height = _blockHeight;
+    }
+    
     switch (topTabType) {
-        case 0:
-            if (_bottomLineHeight >= 3) {
-                lineBottom.frame = CGRectMake(lineBottomDis, _topHeight - 3, yourCount * FUll_VIEW_WIDTH * _bottomLinePer, 3);
-            }else {
-                lineBottom.frame = CGRectMake(lineBottomDis + FUll_VIEW_WIDTH * yourCount * defaultPage, _topHeight - _bottomLineHeight, yourCount * FUll_VIEW_WIDTH * _bottomLinePer, _bottomLineHeight);
+        case 0:{
+            lineBottom.frame = CGRectMake(0, _topHeight - height, width, height);
+            if (defaultPage < btnArray.count) {
+                UIButton * oneBtn =btnArray[defaultPage];
+                if (oneBtn) {
+                    lineBottom.center = CGPointMake(oneBtn.center.x,lineBottom.center.y);
+                }
             }
             break;
+        }
         case 1: {
-            lineBottom.frame = CGRectMake(lineBottomDis + FUll_VIEW_WIDTH * yourCount * defaultPage, (_topHeight - _blockHeight) / 2.0, yourCount * FUll_VIEW_WIDTH * _bottomLinePer, _blockHeight);
+            lineBottom.frame = CGRectMake(0,_topHeight - height, width, height);
             if (_cornerRadiusRatio > 0) {
-                lineBottom.layer.cornerRadius = _blockHeight / _cornerRadiusRatio;
+                lineBottom.layer.cornerRadius = 1;
+            }
+            if (defaultPage < btnArray.count) {
+                UIButton * oneBtn =btnArray[defaultPage];
+                if (oneBtn) {
+                     lineBottom.center = CGPointMake(oneBtn.center.x,lineBottom.center.y);
+                }
             }
         }
             break;
@@ -402,7 +492,12 @@
             break;
     }
     if (!_topTabUnderLineHidden) {
-        topTabBottomLine.frame = CGRectMake(0, _topHeight - 1, (1 + additionCount) * FUll_VIEW_WIDTH, 1);
+        if (_topTabUnderLineWidth > 10) {
+            CGFloat originX = (FUll_VIEW_WIDTH - _topTabUnderLineWidth) / 2;
+            topTabBottomLine.frame = CGRectMake(originX,  _topHeight - 1, _topTabUnderLineWidth, 1);
+        } else {
+            topTabBottomLine.frame = CGRectMake(0, _topHeight - 1, (1 + additionCount) * FUll_VIEW_WIDTH, 1);
+        }
     }
 }
 

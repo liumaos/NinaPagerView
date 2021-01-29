@@ -22,25 +22,21 @@
 
 #import "NinaPagerView.h"
 #import "UIParameter.h"
-#import "NinaBaseView.h"
 #import "UIView+ViewController.h"
 
-#define MaxNums  10 //Max limit number,recommand below 10.
+#define MaxNums  100 //Max limit number,recommand below 10.
 static NSString *const kObserverPage = @"currentPage";
 
 @interface NinaPagerView()<NSCacheDelegate>
 @property (nonatomic, strong) NSCache *limitControllerCache;
-@property (nonatomic, strong) NinaBaseView *ninaBaseView;
 @property (nonatomic, assign) BOOL hasSettingScrollEnabled;
 @property (nonatomic, assign) BOOL hasSettingLinePer;
-@property (nonatomic, strong) id currentObject;
 @property (nonatomic, strong) id lastObject;
 @end
 
 @implementation NinaPagerView
 {
     NSArray *titlesArray;
-    NSArray *classArray;
     NSMutableArray *viewNumArray;
     NSMutableArray *vcsTagArray;
     NSMutableArray *vcsArray;
@@ -55,7 +51,7 @@ static NSString *const kObserverPage = @"currentPage";
     if (self = [super init]) {
         self.frame = frame;
         titlesArray = titles;
-        classArray = objects;
+        _classArray = objects;
     }
     return self;
 }
@@ -96,6 +92,7 @@ static NSString *const kObserverPage = @"currentPage";
         _ninaBaseView = [[NinaBaseView alloc] initWithFrame:self.bounds WithTopTabType:_ninaPagerStyles];
         [_ninaBaseView addObserver:self forKeyPath:kObserverPage options:NSKeyValueObservingOptionOld | NSKeyValueObservingOptionNew context:nil];
     }
+    
     return _ninaBaseView;
 }
 
@@ -112,9 +109,11 @@ static NSString *const kObserverPage = @"currentPage";
 
 #pragma mark - LoadData
 - (void)loadDataForView {
-    [self createPagerView:titlesArray WithObjects:classArray];
+    [self createPagerView:titlesArray WithObjects:_classArray];
     self.ninaBaseView.btnUnSelectColor = _unSelectTitleColor;
     self.ninaBaseView.btnSelectColor = _selectTitleColor;
+    self.ninaBaseView.itemInterval = self.itemInterval;
+    self.ninaBaseView.leftMargin = self.leftMargin;
     self.ninaBaseView.underlineBlockColor = (_ninaPagerStyles == 1)?_sliderBlockColor:_underlineColor;
     self.ninaBaseView.topTabColor = _topTabBackGroundColor;
     CGFloat tabHeight = _topTabHeight > 25?_topTabHeight:40;
@@ -126,12 +125,15 @@ static NSString *const kObserverPage = @"currentPage";
     self.ninaBaseView.titlesFont = _titleFont > 0?_titleFont:14;
     self.ninaBaseView.topTabUnderLineHidden = _underLineHidden;
     self.ninaBaseView.slideEnabled = _hasSettingScrollEnabled?_nina_scrollEnabled:YES;
-    self.ninaBaseView.blockHeight = _sliderHeight > 0?_sliderHeight:tabHeight;
+    self.ninaBaseView.blockHeight = _sliderHeight;
+    self.ninaBaseView.lineBottomWidth = _lineBottomWidth;
     self.ninaBaseView.bottomLinePer = (_selectBottomLinePer > 0 && _selectBottomLinePer < 1 && _hasSettingLinePer)?_selectBottomLinePer:1;
     self.ninaBaseView.autoFitTitleLine = (_nina_autoBottomLineEnable && !_hasSettingLinePer)?_nina_autoBottomLineEnable:NO;
     self.ninaBaseView.bottomLineHeight = _selectBottomLineHeight > 0?_selectBottomLineHeight:2;
     self.ninaBaseView.cornerRadiusRatio = _sliderCornerRadiusRatio > 0?_sliderCornerRadiusRatio:0;
+    self.ninaBaseView.topTabUnderLineWidth = _topTabUnderLineWidth;
     self.ninaBaseView.titleArray = titlesArray;
+    
     if (_nina_navigationBarHidden == YES) {
         self.viewController.automaticallyAdjustsScrollViewInsets = NO;
         self.ninaBaseView.topTab.frame = CGRectMake(0, 20, FUll_VIEW_WIDTH, tabHeight);
@@ -140,9 +142,9 @@ static NSString *const kObserverPage = @"currentPage";
     if (_ninaDefaultPage > 0) {
         self.ninaBaseView.scrollView.contentOffset = CGPointMake(FUll_VIEW_WIDTH * _ninaDefaultPage, 0);
     }
-    if (classArray.count > 0 && titlesArray.count > 0 && ableLoadData) {
+    if (_classArray.count > 0 && titlesArray.count > 0 && ableLoadData) {
         if (_loadWholePages) {
-            for (NSInteger i = 0; i< classArray.count; i++) {
+            for (NSInteger i = 0; i< _classArray.count; i++) {
                 [self loadWholeOrNotWithTag:i WithMode:1];
             }
         }else {
@@ -163,9 +165,10 @@ static NSString *const kObserverPage = @"currentPage";
 
 
 #pragma mark - Reload Data
-- (void)reloadTopTabByTitles:(NSArray *)updatedTitles WithObjects:(NSArray *)updatedObjects {
+- (void)reloadTopTabByTitles:(NSArray *)updatedTitles WithObjects:(NSArray *)updatedObjects
+{
     titlesArray = updatedTitles;
-    classArray = updatedObjects;
+    _classArray = updatedObjects;
     if (firstVC) {
         [firstVC.view removeFromSuperview];
         firstVC.view = nil;
@@ -177,7 +180,7 @@ static NSString *const kObserverPage = @"currentPage";
         [subVC removeFromParentViewController];
     }
     if (!_loadWholePages) {
-        for (NSInteger i = 0; i < classArray.count; i++) {
+        for (NSInteger i = 0; i < _classArray.count; i++) {
             viewAlloc[i] = NO;
         }
     }
@@ -233,34 +236,51 @@ static NSString *const kObserverPage = @"currentPage";
         }
         self.pageIndex = page;
         [self performSelector:@selector(currentPageAndObject) withObject:nil afterDelay:0.1];
-        if (titlesArray.count > 5) {
-            CGFloat topTabOffsetX = 0;
-            if (page >= 2) {
-                if (page <= titlesArray.count - 3) {
-                    topTabOffsetX = (page - 2) * More5LineWidth;
-                }
-                else {
-                    if (page == titlesArray.count - 2) {
-                        topTabOffsetX = (page - 3) * More5LineWidth;
-                    }else {
-                        topTabOffsetX = (page - 4) * More5LineWidth;
-                    }
-                }
+//        if (titlesArray.count > 5) {
+//            CGFloat topTabOffsetX = 0;
+//            if (page >= 2) {
+//                if (page <= titlesArray.count - 3) {
+//                    topTabOffsetX = (page - 2) * More5LineWidth;
+//                }
+//                else {
+//                    if (page == titlesArray.count - 2) {
+//                        topTabOffsetX = (page - 3) * More5LineWidth;
+//                    }else {
+//                        topTabOffsetX = (page - 4) * More5LineWidth;
+//                    }
+//                }
+//            }
+//            else {
+//                if (page == 1) {
+//                    topTabOffsetX = 0 * More5LineWidth;
+//                }else {
+//                    topTabOffsetX = page * More5LineWidth;
+//                }
+//            }
+//
+//        }
+        UIButton * currentButton = self.ninaBaseView.btnArray[self.pageIndex];
+        
+        if (currentButton.frame.origin.x > FUll_VIEW_WIDTH/2 && currentButton.center.x < self.ninaBaseView.topTab.contentSize.width - FUll_VIEW_WIDTH/2) {
+           
+            [self.ninaBaseView.topTab setContentOffset:CGPointMake(currentButton.center.x - FUll_VIEW_WIDTH/2, 0) animated:YES];
+        }else if(currentButton.center.x > self.ninaBaseView.topTab.contentSize.width - FUll_VIEW_WIDTH/2)
+        {
+            if (self.ninaBaseView.topTab.contentSize.width - FUll_VIEW_WIDTH > 0) {
+                 [self.ninaBaseView.topTab setContentOffset:CGPointMake(self.ninaBaseView.topTab.contentSize.width - FUll_VIEW_WIDTH, 0) animated:YES];
+            }else {
+                [self.ninaBaseView.topTab setContentOffset:CGPointMake(0, 0) animated:YES];
             }
-            else {
-                if (page == 1) {
-                    topTabOffsetX = 0 * More5LineWidth;
-                }else {
-                    topTabOffsetX = page * More5LineWidth;
-                }
-            }
-            [self.ninaBaseView.topTab setContentOffset:CGPointMake(topTabOffsetX, 0) animated:YES];
+           
+        }else {
+               [self.ninaBaseView.topTab setContentOffset:CGPointMake(0, 0) animated:YES];
         }
+        
         if (!_loadWholePages) {
             for (NSInteger i = 0; i < titlesArray.count; i++) {
-                if (page == i && i <= classArray.count - 1) {
-                    if ([classArray[i] isKindOfClass:[NSString class]]) {
-                        NSString *className = classArray[i];
+                if (page == i && i <= _classArray.count - 1) {
+                    if ([_classArray[i] isKindOfClass:[NSString class]]) {
+                        NSString *className = _classArray[i];
                         Class class = NSClassFromString(className);
                         if ([class isSubclassOfClass:[UIViewController class]] && viewAlloc[i] == NO) {
                             UIViewController *ctrl = nil;
@@ -274,20 +294,20 @@ static NSString *const kObserverPage = @"currentPage";
                             NSLog(@"Your Vc%li is not found in this project!",(long)i + 1);
                         }
                     }else {
-                        if ([classArray[i] isKindOfClass:[UIViewController class]]) {
-                            UIViewController *ctrl = classArray[i];
+                        if ([_classArray[i] isKindOfClass:[UIViewController class]]) {
+                            UIViewController *ctrl = _classArray[i];
                             if (ctrl && viewAlloc[i] == NO) {
                                 [self createOtherViewControllers:ctrl WithControllerTag:i];
                             }else if (!ctrl) {
                                 NSLog(@"Your Vc%li is not found in this project!",(long)i + 1);
                             }
-                        }else if ([classArray[i] isKindOfClass:[UIView class]]) {
-                            UIView *singleView = classArray[i];
+                        }else if ([_classArray[i] isKindOfClass:[UIView class]]) {
+                            UIView *singleView = _classArray[i];
                             singleView.frame = CGRectMake(FUll_VIEW_WIDTH * i, 0, FUll_VIEW_WIDTH, self.frame.size.height - _topTabHeight);
                             [self.ninaBaseView.scrollView addSubview:singleView];
                         }
                     }
-                }else if (page == i && i > classArray.count - 1) {
+                }else if (page == i && i > _classArray.count - 1) {
                     NSLog(@"You are not set title%li 's controller.",(long)i + 1);
                 }else {
                     /**<  The number of controllers max is 5.   **/
@@ -334,9 +354,15 @@ static NSString *const kObserverPage = @"currentPage";
  */
 - (void)createFirstViewController:(UIViewController *)ctrl {
     firstVC = ctrl;
+    
+    if (self.delegate && [self.delegate respondsToSelector:@selector(ninaFirstCurrentController:)]) {
+        [self.delegate ninaFirstCurrentController:ctrl];
+    }
+    
     self.lastObject = self.currentObject;
     self.currentObject = ctrl;
     ctrl.view.frame = CGRectMake(FUll_VIEW_WIDTH * _ninaDefaultPage, 0, FUll_VIEW_WIDTH, self.frame.size.height - _topTabHeight);
+//    ctrl.view.backgroundColor = [UIColor clearColor];
     [self.ninaBaseView.scrollView addSubview:ctrl.view];
     /**<  Add new test cache   **/
     if (![self.limitControllerCache objectForKey:@(0)]) {
@@ -360,6 +386,11 @@ static NSString *const kObserverPage = @"currentPage";
  *  @param i    controller's tag.
  */
 - (void)createOtherViewControllers:(UIViewController *)ctrl WithControllerTag:(NSInteger)i {
+    
+    if (self.delegate && [self.delegate respondsToSelector:@selector(ninaCreateNewController:pageIndex:)]) {
+        [self.delegate ninaCreateNewController:ctrl pageIndex:i];
+    }
+
     [self.viewController addChildViewController:ctrl];
     self.lastObject = self.currentObject;
     self.currentObject = ctrl;
@@ -401,8 +432,8 @@ static NSString *const kObserverPage = @"currentPage";
  *  @param mode Load whole page mode.
  */
 - (void)loadWholeOrNotWithTag:(NSInteger)ninaTag WithMode:(NSInteger)mode {
-    if ([classArray[ninaTag] isKindOfClass:[NSString class]]) {
-        NSString *className = classArray[ninaTag];
+    if ([_classArray[ninaTag] isKindOfClass:[NSString class]]) {
+        NSString *className = _classArray[ninaTag];
         Class class = NSClassFromString(className);
         if ([class isSubclassOfClass:[UIViewController class]]) {
             UIViewController *ctrl = class.new;
@@ -417,15 +448,15 @@ static NSString *const kObserverPage = @"currentPage";
             [self.ninaBaseView.scrollView addSubview:singleView];
         }
     }else {
-        if ([classArray[ninaTag] isKindOfClass:[UIViewController class]]) {
-            UIViewController *ctrl = classArray[ninaTag];
+        if ([_classArray[ninaTag] isKindOfClass:[UIViewController class]]) {
+            UIViewController *ctrl = _classArray[ninaTag];
             if (mode == 0) {
                 [self createFirstViewController:ctrl];
             }else {
                 [self createOtherViewControllers:ctrl WithControllerTag:ninaTag];
             }
-        }else if ([classArray[ninaTag] isKindOfClass:[UIView class]]) {
-            UIView *singleView = classArray[ninaTag];
+        }else if ([_classArray[ninaTag] isKindOfClass:[UIView class]]) {
+            UIView *singleView = _classArray[ninaTag];
             singleView.frame = CGRectMake(FUll_VIEW_WIDTH * ninaTag, 0, FUll_VIEW_WIDTH, self.frame.size.height - _topTabHeight);
             [self.ninaBaseView.scrollView addSubview:singleView];
         }

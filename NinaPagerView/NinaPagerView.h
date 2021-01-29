@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 #import <UIKit/UIKit.h>
+#import "NinaBaseView.h"
 
 typedef NS_ENUM(NSInteger, NinaPagerStyle) {
     /**<  上侧为下划线   **/
@@ -49,9 +50,17 @@ typedef NS_ENUM(NSInteger, NinaPagerStyle) {
  *  @param lastObject       Last object that you scroll to.
  */
 - (void)ninaCurrentPageIndex:(NSInteger)currentPage currentObject:(id)currentObject lastObject:(id)lastObject;
+
+// 仅用于获取默认选中的第一个vc的回调
+- (void)ninaFirstCurrentController:(UIViewController *)vc;
+
+// 将创建一个新的vc
+- (void)ninaCreateNewController:(UIViewController *)vc pageIndex:(NSInteger)index;
+
 @end
 
 @interface NinaPagerView : UIView
+
 /**
  *  NinaPagerView init method.
  *
@@ -78,6 +87,17 @@ typedef NS_ENUM(NSInteger, NinaPagerStyle) {
  @param updatedTitles       update titles.
  */
 - (void)reloadTopTabByTitles:(NSArray *)updatedTitles;
+
+// 当前控制器
+@property (nonatomic, strong) id currentObject;
+
+// 包含各个控制器的数组
+@property (nonatomic, strong) NSArray *classArray;
+
+@property (nonatomic, strong) NinaBaseView *ninaBaseView;
+
+// 下划线长度默认居中
+@property (nonatomic, assign) CGFloat topTabUnderLineWidth;
 
 /**<
  *  顶部菜单栏的展示样式。
@@ -155,6 +175,9 @@ typedef NS_ENUM(NSInteger, NinaPagerStyle) {
  *  SliderBlock's height in NinaPagerStyleSlideBlock.
  **/
 @property (assign, nonatomic) CGFloat sliderHeight;
+
+@property (nonatomic, assign) CGFloat lineBottomWidth; // 滑块宽度
+
 /**<
  *  滑块的layer.cornerRadius属性，默认的计算公式是(滑块高度 / SlideBlockCornerRadius)，若您想要自定义调整，请修改此参数，如果不想要圆角，请设置此参数为0。
  *  Sliderblock's layer.cornerRadius,it equals to sliderHeight / SlideBlockCornerRadius,if you don't want cornerRadius,please set this to 0.
@@ -200,6 +223,9 @@ typedef NS_ENUM(NSInteger, NinaPagerStyle) {
  *  Custom topTab views,you can set views as you wish.The property needs to your selected views array,you can set it like Example's setting(This property doesn't support NinaPagerStyleSlideBlock mode).
  **/
 @property (strong, nonatomic) NSArray *selectedTopTabViews;
+
+@property (nonatomic, assign) CGFloat leftMargin;
+@property (nonatomic, assign) CGFloat itemInterval;
 
 @property (weak, nonatomic) id<NinaPagerViewDelegate>delegate; /**< NinaPagerView代理 **/
 
